@@ -1,0 +1,36 @@
+---
+title: "Plots"
+output: word_document
+---
+
+```{r}
+Bank <- read.csv("~/Desktop/MSA_6440/customer_churn/data/processed/BankChurners_filtered.csv")
+```
+
+## Exploratory Plots
+```{r}
+# Plot of attrition flag
+plot(Bank$Attrition_Flag)
+library(plyr)
+count(Bank, 'Attrition_Flag')
+1113/7081 # Percent customer attrition
+
+# Histogram of customer age
+hist(Bank$Customer_Age, main = 'Customer Age')
+# Plot of gender
+plot(Bank$Gender, main = 'Gender Distribution')
+# Plot of education level
+plot(Bank$Education_Level, main = 'Education Level')
+# Plot of marital status
+plot(Bank$Marital_Status, main = 'Marital Status')
+# Plot of income
+plot(Bank$Income_Category, main = 'Income Category')
+# Plot of card category
+plot(Bank$Card_Category, main = 'Card Category')
+# Histogram of months on book
+hist(Bank$Months_on_book, main = 'Months on Book')
+# Histogram of credit limit
+hist(Bank$Credit_Limit, main = 'Credit Limit')
+# Histogram of average utilization ratio
+hist(Bank$Avg_Utilization_Ratio, main = 'Average Utilization Ratio')
+```
