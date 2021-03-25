@@ -46,28 +46,6 @@ y.test <- ifelse(prob.test[,2] > 0.8, "Existing Customer", "Attrited Customer")
 confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = "Existing Customer")
 ```
 
-## KNN Model
-```{r}
-# Scaling the data
-training.scaled <- scale(training.data[,c(-1,-3,-5:-8)], center = TRUE, scale = TRUE)
-attrib <- attributes(training.scaled)
-test.scaled <- scale(test.data[,c(-1,-3,-5:-8)], center = attrib$`scaled:center`, scale = attrib$`scaled:scale`)
-
-library(FNN)
-# Fitting 10-fold CV model
-set.seed(0)
-train_control <- trainControl(method = "cv", number = 10) 
-knn_cv <- train(Attrition_Flag ~ ., data = training.data, method = "knn", trControl = train_control, tuneLength = 10, metric = "Kappa")
-
-# Final model
-print(knn_cv)
-knn_cv$finalModel
-
-# Fit model on test data with k = 15
-knn.test <- knn(train = training.scaled, test = test.scaled, cl = training.data[,1], k = 15)
-confusionMatrix(as.factor(knn.test), as.factor(test.data[,1]), positive = "Existing Customer")
-```
-
 ## Decision Tree Model
 ```{r}
 library(rpart)

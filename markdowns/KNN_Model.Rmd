@@ -1,0 +1,71 @@
+---
+title: "KNN Model"
+output: word_document
+---
+
+```{r}
+bank <- read.csv("~/Desktop/MSA_6440/customer_churn/data/processed/BankChurners_filtered.csv")
+source('/Users/JonathanVoth/Desktop/R Codes/myfunctions.R')
+
+# Creating dummy variables for Education
+bank$High_School <- ifelse(bank$Education_Level == 'High School', 1, 0)
+bank$College <- ifelse(bank$Education_Level == 'College', 1, 0)
+bank$Graduate <- ifelse(bank$Education_Level == 'Graduate', 1, 0)
+bank$Uneducated <- ifelse(bank$Education_Level == 'Uneducated', 1, 0)
+bank$Post_Graduate <- ifelse(bank$Education_Level == 'Post-Graduate', 1, 0)
+bank$Doctorate <- ifelse(bank$Education_Level == 'Doctorate', 1, 0)
+
+# Creating dummy variables for Marital Status
+bank$Married <- ifelse(bank$Marital_Status == 'Married', 1, 0)
+bank$Single <- ifelse(bank$Marital_Status == 'Single', 1, 0)
+bank$Divorced <- ifelse(bank$Marital_Status == 'Divorced', 1, 0)
+
+# Creating dummy variables for Gender
+bank$Male <- ifelse(bank$Gender == 'M', 1, 0)
+bank$Female <- ifelse(bank$Gender == 'F', 1, 0)
+
+# Creating dummy variables for Income
+bank$Income_5 <- ifelse(bank$Income_Category == '$120K +', 1, 0)
+bank$Income_4 <- ifelse(bank$Income_Category == '$80K - $120K', 1, 0)
+bank$Income_3 <- ifelse(bank$Income_Category == '$60K - $80K', 1, 0)
+bank$Income_2 <- ifelse(bank$Income_Category == '$40K - $60K', 1, 0)
+bank$Income_1 <- ifelse(bank$Income_Category == 'Less than $40K', 1, 0)
+
+# Creating dummy variables for Card category
+bank$Blue_Card <- ifelse(bank$Card_Category == 'Blue', 1, 0)
+bank$Gold_Card <- ifelse(bank$Card_Category == 'Gold', 1, 0)
+bank$Plat_Card <- ifelse(bank$Card_Category == 'Platinum', 1, 0)
+bank$Silver_Card <- ifelse(bank$Card_Category == 'Silver', 1, 0)
+
+bank <- bank[,c(-1,-2,-5,-7:-10)]
+
+RNGkind (sample.kind = "Rounding") 
+set.seed(0)
+p2 <- partition.2(bank, 0.7) # 70:30 partition
+training.data <- p2$data.train
+test.data <- p2$data.test
+```
+
+## KNN Model
+```{r cars}
+# Scaling the data
+training.scaled <- scale(training.data[,-1], center = TRUE, scale = TRUE)
+attrib <- attributes(training.scaled)
+test.scaled <- scale(test.data[,-1], center = attrib$`scaled:center`, scale = attrib$`scaled:scale`)
+
+library(caret)
+library(FNN)
+
+# Fitting 10-fold CV model
+set.seed(0)
+train_control <- trainControl(method = "cv", number = 10) 
+knn_cv <- train(Attrition_Flag ~ ., data = training.data, method = "knn", trControl = train_control, preProcess = c("center","scale"), tuneGrid = data.frame(k = seq(1,7,1)), metric = "Kappa")
+
+# Final model
+print(knn_cv)
+knn_cv$finalModel
+
+# Fit model on test data with k = 3
+knn.test <- knn(train = training.scaled, test = test.scaled, cl = training.data[,1], k = 3)
+confusionMatrix(as.factor(knn.test), as.factor(test.data[,1]), positive = "Existing Customer")
+```
