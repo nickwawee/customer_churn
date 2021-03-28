@@ -1,26 +1,30 @@
 ---
-title: "Models"
+title: "Undersampling Models"
 output: word_document
 ---
 
 ```{r}
-Bank <- read.csv("~/Desktop/MSA_6440/customer_churn/data/processed/BankChurners_filtered.csv")
+bank <- read.csv("~/Desktop/MSA_6440/customer_churn/data/processed/BankChurners_filtered.csv")
 source('/Users/JonathanVoth/Desktop/R Codes/myfunctions.R')
 
-bank <- Bank[,c(-1,-2,-10)]
+bank <- bank[,c(-1,-2,-10)]
 
 RNGkind (sample.kind = "Rounding") 
 set.seed(0)
 p2 <- partition.2(bank, 0.7) # 70:30 partition
 training.data <- p2$data.train
 test.data <- p2$data.test
-```
 
-## Logistic Regression
-```{r}
-# Logistic model with all variables
-log.model <- glm(Attrition_Flag ~ ., family = binomial(link='logit'), data = training.data)
-summary(log.model)
+# Undersampling
+set.seed(0)
+all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
+all_attrit <- training.data[which(training.data$Attrition_Flag == 'Attrited Customer'),]
+
+random <- sample(1:nrow(all_exist), nrow(all_attrit), replace = FALSE)
+train.data <- all_exist[random,]
+
+training.under <- rbind(all_attrit, train.data)
+table(training.under$Attrition_Flag)
 ```
 
 ## CV Logistic Model
@@ -29,20 +33,20 @@ library(caret)
 # K-fold Cross Validation
 set.seed(0)
 train_control <- trainControl(method = "cv", number = 10) 
-step_cv <- train(Attrition_Flag ~ ., data = training.data, family = "binomial", method = "glmStepAIC", trControl = train_control)
+step_cv <- train(Attrition_Flag ~ ., data = training.under, family = "binomial", method = "glmStepAIC", trControl = train_control)
 ```
 
-```{r}
+```{r cars}
 print(step_cv)
 step_cv$finalModel
 
 # Confusion matrix for test data
 prob.test <- predict(step_cv, newdata = test.data, type = "prob")
-y.test <- ifelse(prob.test[,2] > 0.8, "Existing Customer", "Attrited Customer")
+y.test <- ifelse(prob.test[,2] > 0.6, "Existing Customer", "Attrited Customer")
 confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = "Existing Customer")
 ```
 
-## Decision Tree Model
+## Decision Tree
 ```{r}
 library(rpart)
 library(rpart.plot)
@@ -51,8 +55,7 @@ library(caret)
 # Decision tree model with CV
 set.seed(0)
 train_control <- trainControl(method = "cv", number = 10) 
-tree_cv <- train(Attrition_Flag ~ ., data = training.data, method = "rpart", trControl = train_control, tuneLength = 10, metric = "Kappa", control = rpart.control(minsplit = 150, minbucket = 100))
-# tuneGrid = data.frame(cp = seq(0, 0.01, 0.001)
+tree_cv <- train(Attrition_Flag ~ ., data = training.under, method = "rpart", trControl = train_control, tuneLength = 10, metric = "Kappa", control = rpart.control(minsplit = 150, minbucket = 100))
 
 print(tree_cv)
 
@@ -61,7 +64,7 @@ prp(tree_cv$finalModel, type = 1, extra = 1, under = TRUE, split.font = 2, varle
 
 # Evaluation on the test data
 prob.test <- predict(tree_cv, test.data, type = 'prob')
-y.test <- ifelse(prob.test[,2] > 0.8, "Existing Customer", "Attrited Customer")
+y.test <- ifelse(prob.test[,2] > 0.6, "Existing Customer", "Attrited Customer")
 confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = 'Existing Customer')
 ```
 
@@ -74,7 +77,7 @@ train_control <- trainControl(method = "cv", number = 10)
 tune.grid <- expand.grid(size = seq(from = 1, to = 10, by = 1), decay = seq(from = 0.1, to = 0.5, by = 0.1))
 
 # Fitting NN model
-cv.nn <- train(Attrition_Flag ~ . , data = training.data, method = "nnet", preProc = c("center", "scale"), trControl = train_control, tuneGrid = tune.grid, metric = "Kappa")
+cv.nn <- train(Attrition_Flag ~ . , data = training.under, method = "nnet", preProc = c("center", "scale"), trControl = train_control, tuneGrid = tune.grid, metric = "Kappa")
 ```
 
 ```{r}
@@ -85,6 +88,7 @@ cv.nn$bestTune
 
 # Evaluation on the test data
 prob.test <- predict(cv.nn, test.data, type = 'prob')
-y.test <- ifelse(prob.test[,2] > 0.8, "Existing Customer", "Attrited Customer")
+y.test <- ifelse(prob.test[,2] > 0.65, "Existing Customer", "Attrited Customer")
 confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = 'Existing Customer')
 ```
+

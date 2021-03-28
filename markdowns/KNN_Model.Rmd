@@ -31,12 +31,6 @@ bank$Income_3 <- ifelse(bank$Income_Category == '$60K - $80K', 1, 0)
 bank$Income_2 <- ifelse(bank$Income_Category == '$40K - $60K', 1, 0)
 bank$Income_1 <- ifelse(bank$Income_Category == 'Less than $40K', 1, 0)
 
-# Creating dummy variables for Card category
-bank$Blue_Card <- ifelse(bank$Card_Category == 'Blue', 1, 0)
-bank$Gold_Card <- ifelse(bank$Card_Category == 'Gold', 1, 0)
-bank$Plat_Card <- ifelse(bank$Card_Category == 'Platinum', 1, 0)
-bank$Silver_Card <- ifelse(bank$Card_Category == 'Silver', 1, 0)
-
 bank <- bank[,c(-1,-2,-5,-7:-10)]
 
 RNGkind (sample.kind = "Rounding") 
@@ -69,3 +63,60 @@ knn_cv$finalModel
 knn.test <- knn(train = training.scaled, test = test.scaled, cl = training.data[,1], k = 3)
 confusionMatrix(as.factor(knn.test), as.factor(test.data[,1]), positive = "Existing Customer")
 ```
+
+## KNN with Undersampling
+```{r}
+set.seed(0)
+all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
+all_attrit <- training.data[which(training.data$Attrition_Flag == 'Attrited Customer'),]
+
+random <- sample(1:nrow(all_exist), nrow(all_attrit), replace = FALSE)
+train.data <- all_exist[random,]
+
+training.under <- rbind(all_attrit, train.data)
+table(training.under$Attrition_Flag)
+
+# Scaling the data
+train.scaled.under <- scale(training.under[,-1], center = TRUE, scale = TRUE)
+attrib.under <- attributes(train.scaled.under)
+test.scaled.under <- scale(test.data[,-1], center = attrib.under$`scaled:center`, scale = attrib.under$`scaled:scale`)
+
+# Fitting 10-fold CV model
+set.seed(0)
+train_control <- trainControl(method = "cv", number = 10) 
+knn_under <- train(Attrition_Flag ~ ., data = training.under, method = "knn", trControl = train_control, preProcess = c("center","scale"), tuneLength = 20, metric = "Kappa")
+# tuneGrid = data.frame(k = seq(33,45,1))
+
+# Final model
+print(knn_under)
+knn_under$finalModel
+
+# Fit model on test data with k = 37
+knn.test.under <- knn(train = train.scaled.under, test = test.scaled.under, cl = training.under[,1], k = 37)
+confusionMatrix(as.factor(knn.test.under), as.factor(test.data[,1]), positive = "Existing Customer")
+```
+
+## KNN with Imortant Variables
+```{r}
+train.important <- training.data[,c(-16:-31)]
+test.important <- test.data[,c(-16:-31)]
+
+# Scaling the data
+train.scaled.imp <- scale(train.important[,-1], center = TRUE, scale = TRUE)
+attrib.under.imp <- attributes(train.scaled.imp)
+test.scaled.imp <- scale(test.important[,-1], center = attrib.under.imp$`scaled:center`, scale = attrib.under.imp$`scaled:scale`)
+
+# Fitting 10-fold CV model
+set.seed(0)
+train_control <- trainControl(method = "cv", number = 10) 
+knn_cv <- train(Attrition_Flag ~ ., data = train.important, method = "knn", trControl = train_control, preProcess = c("center","scale"), tuneGrid = data.frame(k = seq(1,7,1)), metric = "Kappa")
+
+# Final model
+print(knn_cv)
+knn_cv$finalModel
+
+# Fit model on test data with k = 3
+knn.test <- knn(train = train.scaled.imp, test = test.scaled.imp, cl = training.data[,1], k = 3)
+confusionMatrix(as.factor(knn.test), as.factor(test.data[,1]), positive = "Existing Customer")
+```
+
