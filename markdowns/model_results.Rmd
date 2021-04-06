@@ -1,0 +1,72 @@
+---
+title: "Model Results"
+author: "Nick Wawee"
+date: "4/6/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(reshape2)
+
+plot_opts =   theme_bw()+
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black") , axis.title.x = element_text(face='bold', size = 14), axis.title.y = element_text(face='bold', size = 14), plot.title = element_text(face='bold', size = 18, hjust=0.5))
+
+```
+
+## Overall Results Plot
+
+### Input Data
+
+```{r overall}
+rn = c('Accuracy', 'Sensitivity', 'Specificity', 'Kappa')
+
+#all samples
+df_all = data.frame('Stepwise Logit'= c(0.8644, 0.8780, 0.7923, 0.5689),
+                'CCT' = c(0.8701, 0.8786, 0.8249, 0.5911),
+                'MLP' = c(0.9077, 0.9116, 0.8872, 0.698),
+                'KNN' = c(0.8781, 0.9692, 0.3947, 0.4434),
+                'Random Forest' = c(0.956, 0.819, 0.982, 0.83),
+                'ADABoost'= c(0.968, 0.875, 0.986, 0.879))
+
+row.names(df_all) = rn
+df_all$Metric = rn
+df_all.m = melt(df_all)
+#undersample
+
+df_under = data.frame('Stepwise Logit'= c(0.8013, 0.7862, 0.8813, 0.4729),
+                'CCT' = c(0.8484, 0.8372, 0.9080, 0.5675),
+                'MLP' = c(0.8202, 0.8058, 0.8961, 0.5103),
+                'KNN' = c(0.8084, 0.8114, 0.7923, 0.4569),
+                'Random Forest' = c(0.924, 0.944, 0.921, 0.753),
+                'ADABoost'= c(0.938, 0.953, 0.935, 0.792))
+row.names(df_under) = rn
+df_under$Metric = rn
+df_under.m = melt(df_under)
+```
+
+### All Sample Plot
+
+```{r allsample, fig.width=9, fig.height=6, units = 'in'}
+df_all.m$Labels = round(df_all.m$value, 2)
+p = ggplot(data = df_all.m, aes(y = value, x = variable, fill = Metric))+
+  geom_col(position=position_dodge(), colour="black")+labs(x = 'Model', y='Evaluation Metric', title = 'Model Performance with All Samples')+ geom_text(aes(label=Labels), position = position_dodge(width=0.9),color="white", size=4, hjust = 1.1, fontface = 'bold')+plot_opts+theme(axis.text.x = element_text(face = 'bold'), axis.text.y = element_text(face = 'bold'), legend.title = element_text(face = 'bold'))+coord_flip()+scale_fill_brewer(palette = 'Set1')+ylim(0,1)
+p
+
+ggsave('../plots/allsample_metrics.png',plot = p, device = 'png', height = 6, width = 9, units = 'in', dpi = 600)
+```
+
+### Undersample Plot
+
+```{r undersample, fig.width=9, fig.height=6, units = 'in'}
+df_under.m$Labels = round(df_under.m$value, 2)
+p = ggplot(data = df_under.m, aes(y = value, x = variable, fill = Metric))+
+  geom_col(position=position_dodge(), colour="black")+labs(x = 'Model', y='Evaluation Metric', title = 'Model Performance with Downsampling')+ geom_text(aes(label=Labels), position = position_dodge(width=0.9),color="white", size=4, hjust = 1.1, fontface = 'bold')+plot_opts+theme(axis.text.x = element_text(face = 'bold'), axis.text.y = element_text(face = 'bold'), legend.title = element_text(face = 'bold'))+coord_flip()+scale_fill_brewer(palette = 'Set1')+ylim(0,1)
+p
+
+ggsave('../plots/undersample_metrics.png',plot = p, device = 'png', height = 6, width = 9, units = 'in', dpi = 600)
+
+```

@@ -1,5 +1,5 @@
 ---
-title: "Ensemble Models"
+title: "Ensemble Models - Undersampling"
 author: "Nick Wawee"
 date: "3/26/2021"
 output: word_document
@@ -97,7 +97,7 @@ bank$Gold_Card <- ifelse(bank$Card_Category == 'Gold', 1, 0)
 bank$Plat_Card <- ifelse(bank$Card_Category == 'Platinum', 1, 0)
 bank$Silver_Card <- ifelse(bank$Card_Category == 'Silver', 1, 0)
 
-bank <- bank[,c(-1,-2,-5,-7:-10, -39:-42)]#removes card type
+bank <- bank[,c(-1,-2,-5,-7:-10,-39:-42)]
 
 RNGkind (sample.kind = "Rounding") 
 set.seed(0)
@@ -106,6 +106,18 @@ dfls = partition.2(bank, 0.7)
 
 test.data = dfls$data.test
 training.data = dfls$data.train
+
+
+# Undersampling
+set.seed(0)
+all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
+all_attrit <- training.data[which(training.data$Attrition_Flag == 'Attrited Customer'),]
+
+random <- sample(1:nrow(all_exist), nrow(all_attrit), replace = FALSE)
+train.data <- all_exist[random,]
+
+training.under <- rbind(all_attrit, train.data)
+table(training.under$Attrition_Flag)
 ```
 
 ## Random Forest
@@ -114,7 +126,7 @@ training.data = dfls$data.train
 set.seed(0)
 modelLookup("rf")
 train_control <- trainControl(method="cv", number=10)
-rf <- train(Attrition_Flag ~ ., data = training.data, method = "rf", ntree = 50,rControl = train_control, tuneGrid = expand.grid(mtry = c(4, 5, 6, 7, 8)), metric = 'Kappa')
+rf <- train(Attrition_Flag ~ ., data = training.under, method = "rf", ntree = 50,rControl = train_control, tuneGrid = expand.grid(mtry = c(4, 5, 6, 7, 8)), metric = 'Kappa')
 
 
 print(rf)
@@ -143,17 +155,16 @@ train_control <- trainControl(method="cv", number=10)
 tgrid <- expand.grid(iter = c(150),         
                       maxdepth = c(6, 7, 8),       
                       nu = c(0.12, 0.15, 0.18))
-ada <- train(Attrition_Flag~ . , data = training.data, method = "ada", metric = "Kappa",
+ada_m <- train(Attrition_Flag~ . , data = training.under, method = "ada", metric = "Kappa",
                 trControl = train_control, tuneGrid = tgrid)
-print(ada)
-plot(varImp(ada))
+plot(varImp(ada_m))
 
 # get prediction on the test data
-pred.test.ada = predict(ada$finalModel, test.data)
+pred.test.ada = predict(ada_m$finalModel, test.data)
 
 # create confusion matrix
 cm = confusionMatrix(pred.test.ada, test.data$Attrition_Flag, positive = "Attrited Customer")
 
-
 cm_plot = plot_cm(cm, 'Confusion Matrix: AdaBoost' )
+
 ```
