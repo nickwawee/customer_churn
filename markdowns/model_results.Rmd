@@ -27,7 +27,7 @@ rn = c('Accuracy', 'Sensitivity', 'Specificity', 'Kappa')
 #all samples
 df_all = data.frame('Stepwise Logit'= c(0.8644, 0.8780, 0.7923, 0.5689),
                 'CCT' = c(0.8701, 0.8786, 0.8249, 0.5911),
-                'MLP' = c(0.9077, 0.9116, 0.8872, 0.698),
+                'Neural Network' = c(0.9077, 0.9116, 0.8872, 0.698),
                 'KNN' = c(0.8781, 0.9692, 0.3947, 0.4434),
                 'Random Forest' = c(0.956, 0.819, 0.982, 0.83),
                 'ADABoost'= c(0.968, 0.875, 0.986, 0.879))
@@ -39,7 +39,7 @@ df_all.m = melt(df_all)
 
 df_under = data.frame('Stepwise Logit'= c(0.8013, 0.7862, 0.8813, 0.4729),
                 'CCT' = c(0.8484, 0.8372, 0.9080, 0.5675),
-                'MLP' = c(0.8202, 0.8058, 0.8961, 0.5103),
+                'Neural Network' = c(0.8202, 0.8058, 0.8961, 0.5103),
                 'KNN' = c(0.8084, 0.8114, 0.7923, 0.4569),
                 'Random Forest' = c(0.924, 0.944, 0.921, 0.753),
                 'ADABoost'= c(0.938, 0.953, 0.935, 0.792))
@@ -64,9 +64,144 @@ ggsave('../plots/allsample_metrics.png',plot = p, device = 'png', height = 6, wi
 ```{r undersample, fig.width=9, fig.height=6, units = 'in'}
 df_under.m$Labels = round(df_under.m$value, 2)
 p = ggplot(data = df_under.m, aes(y = value, x = variable, fill = Metric))+
-  geom_col(position=position_dodge(), colour="black")+labs(x = 'Model', y='Evaluation Metric', title = 'Model Performance with Downsampling')+ geom_text(aes(label=Labels), position = position_dodge(width=0.9),color="white", size=4, hjust = 1.1, fontface = 'bold')+plot_opts+theme(axis.text.x = element_text(face = 'bold'), axis.text.y = element_text(face = 'bold'), legend.title = element_text(face = 'bold'))+coord_flip()+scale_fill_brewer(palette = 'Set1')+ylim(0,1)
+  geom_col(position=position_dodge(), colour="black")+labs(x = 'Model', y='Evaluation Metric', title = 'Model Performance with Down Sampling')+ geom_text(aes(label=Labels), position = position_dodge(width=0.9),color="white", size=4, hjust = 1.1, fontface = 'bold')+plot_opts+theme(axis.text.x = element_text(face = 'bold'), axis.text.y = element_text(face = 'bold'), legend.title = element_text(face = 'bold'))+coord_flip()+scale_fill_brewer(palette = 'Set1')+ylim(0,1)
 p
 
 ggsave('../plots/undersample_metrics.png',plot = p, device = 'png', height = 6, width = 9, units = 'in', dpi = 600)
 
+```
+
+
+### Lift Charts
+
+```{r lift}
+library(gains)
+
+##loading probabilities
+
+test.data = read.csv('../data/processed/test.csv')
+test.data$Attrition_Flag = ifelse(test.data$Attrition_Flag == "Attrited Customer",1 ,0)
+
+pred.prob.ada = read.csv('../data/processed/ada_prob.csv')
+pred.prob.ada.under = read.csv('../data/processed/ada_prob_under.csv')
+
+pred.prob.rf = read.csv('../data/processed/rf_prob.csv')
+pred.prob.rf.under = read.csv('../data/processed/rf_prob_under.csv')
+
+pred.prob.logit = read.csv('../data/processed/logit_prob.csv')
+pred.prob.logit.under = read.csv('../data/processed/logit_prob_under.csv')
+
+##ada
+gain <- gains(test.data$Attrition_Flag, pred.prob.ada$Attrited.Customer) 
+x.ada <- c(0, gain$depth)
+pred.y.ada <- c(0, gain$cume.pct.of.total)
+adadf = data.frame('Percent_Cumulative_Response' = pred.y.ada, 'Decile' = x.ada)
+adadf$Model = 'ADABoost'
+adadf$Samples = 'All'
+
+gain <- gains(test.data$Attrition_Flag, pred.prob.ada.under$Attrited.Customer) 
+x.ada <- c(0, gain$depth)
+pred.y.ada <- c(0, gain$cume.pct.of.total)
+adadf_under = data.frame('Percent_Cumulative_Response' = pred.y.ada, 'Decile' = x.ada)
+adadf_under$Model = 'ADABoost'
+adadf_under$Samples = 'Under'
+
+##random forest
+gain <- gains(test.data$Attrition_Flag, pred.prob.rf$Attrited.Customer) 
+x.rf <- c(0, gain$depth)
+pred.y.rf <- c(0, gain$cume.pct.of.total)
+rfdf = data.frame('Percent_Cumulative_Response' = pred.y.rf, 'Decile' = x.rf)
+rfdf$Model = 'Random Forest'
+rfdf$Samples = 'All'
+
+gain <- gains(test.data$Attrition_Flag, pred.prob.rf.under$Attrited.Customer) 
+x.rf <- c(0, gain$depth)
+pred.y.rf <- c(0, gain$cume.pct.of.total)
+rfdf_under = data.frame('Percent_Cumulative_Response' = pred.y.rf, 'Decile' = x.rf)
+rfdf_under$Model = 'Random Forest'
+rfdf_under$Samples = 'Under'
+
+##logit
+gain <- gains(test.data$Attrition_Flag, pred.prob.logit$Attrited.Customer) 
+x.logit <- c(0, gain$depth)
+pred.y.logit <- c(0, gain$cume.pct.of.total)
+logitdf = data.frame('Percent_Cumulative_Response' = pred.y.logit, 'Decile' = x.logit)
+logitdf$Model = 'Logit'
+logitdf$Samples = 'All'
+
+gain <- gains(test.data$Attrition_Flag, pred.prob.logit.under$Attrited.Customer) 
+x.ada <- c(0, gain$depth)
+pred.y.ada <- c(0, gain$cume.pct.of.total)
+logitdf_under = data.frame('Percent_Cumulative_Response' = pred.y.logit, 'Decile' = x.logit)
+logitdf_under$Model = 'Logit'
+logitdf_under$Samples = 'Under'
+
+#combining all dfs
+liftchartdf = rbind(adadf, adadf_under,rfdf, rfdf_under, logitdf, logitdf_under)
+
+liftp = ggplot(data = liftchartdf, aes(x = Decile, y = Percent_Cumulative_Response))+
+  geom_line(aes(col= Model, linetype = Samples), alpha = 0.5)+
+  plot_opts+labs(title = 'Lift Chart of Select Models', y = 'Percent Cumulative Response')+
+  theme(legend.title = element_text(face = 'bold'),legend.position = c(0.87, 0.4))+
+  geom_segment(aes(x = 0, xend = 100, y = 0, yend =1))
+liftp
+
+ggsave('../plots/liftchart.png',plot = liftp, device = 'png', height = 5, width = 6, units = 'in', dpi = 600)
+```
+
+
+
+### Variable Importance
+
+#### Trees
+
+```{r varimptrees, width = 6, height = 10, units = 'in'}
+
+load('../data/processed/vimps_trees.rda')
+vimpdf$Labels = round(vimpdf$Overall,2)
+
+#finding mean value for order
+meandf = data.frame('Mean' = as.numeric())
+for (l in levels(as.factor(vimpdf$Predictor))){
+  meandf[l, 'Mean'] = mean(vimpdf$Overall[vimpdf$Predictor == l])
+}
+
+meandf = as.matrix(meandf)
+meandf = meandf[order(meandf, decreasing = F),]
+meandf = data.frame(imp = meandf)
+meandf$o = seq(from = 1, to = nrow(meandf), by = 1)
+vimpdf$o[match(rownames(meandf), vimpdf$Predictors)] = meandf$o
+
+treeimp_p = vimpdf %>%
+  mutate(Predictors = fct_reorder(Predictors, o)) %>%
+  ggplot( aes(y = Overall, x = Predictors, fill = Model))+
+    geom_col(position = position_dodge(), colour="black")+labs(x = 'Predictor', y='Importance Score', title = 'Tree Predictor Importance')+ plot_opts+theme(axis.text.x = element_text(face = 'bold'), axis.text.y = element_text(face = 'bold'), legend.title = element_text(face = 'bold'), legend.position = c(0.87, 0.4))+coord_flip()
+
+treeimp_p
+
+ggsave('../plots/treepredimp_under.png',plot = treeimp_p, device = 'png', height = 9, width = 6, units = 'in', dpi = 600)
+```
+
+
+#### Stepwise Logit
+
+```{r varimp logit}
+
+library(jtools)
+load('../data/processed/logit_under.rda')
+
+logit = step_cv$finalModel
+
+png('../plots/logit_under_coeffs.png', height = 4, width = 6, res = 600, units = 'in')
+plot_coefs(logit, exp= T)
+dev.off()
+
+library(tidyr)
+tbl = tidy(logit)
+tbl$estimate = round(tbl$estimate,4)
+tbl$std.error = round(tbl$std.error,4)
+tbl$statistic = round(tbl$statistic,4)
+tbl$p.value = round(tbl$p.value,4)
+
+write.table(tbl, file = '../data/processed/logit_summary.txt', sep = ",", quote = FALSE, row.names = F)
 ```

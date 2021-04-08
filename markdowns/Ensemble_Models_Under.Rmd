@@ -24,15 +24,15 @@ plot_cm <- function(cm, plot_title) {#https://stackoverflow.com/questions/238911
 
   # create the matrix 
   rect(150, 430, 240, 370, col='#3F97D0')
-  text(195, 435, 'Class1', cex=1.2)
+  text(195, 435, 'Attrited', cex=1.2)
   rect(250, 430, 340, 370, col='#F7AD50')
-  text(295, 435, 'Class2', cex=1.2)
+  text(295, 435, 'Existing', cex=1.2)
   text(125, 370, 'Predicted', cex=1.3, srt=90, font=2)
   text(245, 450, 'Actual', cex=1.3, font=2)
   rect(150, 305, 240, 365, col='#F7AD50')
   rect(250, 305, 340, 365, col='#3F97D0')
-  text(140, 400, 'Class1', cex=1.2, srt=90)
-  text(140, 335, 'Class2', cex=1.2, srt=90)
+  text(140, 400, 'Attrited', cex=1.2, srt=90)
+  text(140, 335, 'Existing', cex=1.2, srt=90)
 
   # add in the cm results 
   res <- as.numeric(cm$table)
@@ -42,7 +42,7 @@ plot_cm <- function(cm, plot_title) {#https://stackoverflow.com/questions/238911
   text(295, 335, res[4], cex=1.6, font=2, col='white')
 
   # add in the specifics 
-  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS", xaxt='n', yaxt='n')
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS", xaxt='n', yaxt='n', col = 'white')
   text(10, 85, names(cm$byClass[1]), cex=1.2, font=2)
   text(10, 70, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
   text(30, 85, names(cm$byClass[2]), cex=1.2, font=2)
@@ -107,7 +107,7 @@ dfls = partition.2(bank, 0.7)
 test.data = dfls$data.test
 training.data = dfls$data.train
 
-
+write.csv(x= test.data, file = '../data/processed/test.csv')
 # Undersampling
 set.seed(0)
 all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
@@ -132,17 +132,23 @@ rf <- train(Attrition_Flag ~ ., data = training.under, method = "rf", ntree = 50
 print(rf)
 plot(varImp(rf))
 
+vimprf = varImp(rf)$importance
+vimprf = vimprf
+vimprf$Model = 'Random Forest'
+
 rf$finalModel
 
 # get prediction on the test data
 pred.test.rf = predict(rf$finalModel, test.data, type = 'class')
-
+prob.test <- predict(rf, test.data, type = 'prob')
+write.csv(x = prob.test, file = '../data/processed/rf_prob_under.csv')
 # create confusion matrix
 cm = confusionMatrix(pred.test.rf, test.data$Attrition_Flag, positive = "Attrited Customer")
 
-cm_plot = plot_cm(cm, 'Confusion Matrix: Random Forest' )
-
-cm_plot
+cm_plot = plot_cm(cm, 'Confusion Matrix: Random Forest - Under Sampled' )
+png('../plots/cm_rf_under.png', height = 6, width = 6, res = 600, units = 'in')
+plot_cm(cm, 'Confusion Matrix: Random Forest - Under Sampled' )
+dev.off()
 ```
 
 ## ADABoost
@@ -158,13 +164,27 @@ tgrid <- expand.grid(iter = c(150),
 ada_m <- train(Attrition_Flag~ . , data = training.under, method = "ada", metric = "Kappa",
                 trControl = train_control, tuneGrid = tgrid)
 plot(varImp(ada_m))
+vimpada = varImp(ada_m)$importance
+vimpada = data.frame('Overall' = vimpada[,1])
+row.names(vimpada) = rownames(varImp(ada_m)$importance)
+vimpada$Model = 'ADABoost'
+vimpada$Predictors = rownames(vimpada)
+
+vimprf$Predictors = rownames(vimprf)
+vimpdf = rbind(vimpada, vimprf)
+
+save(vimpdf, file = '../data/processed/vimps_trees.rda')
 
 # get prediction on the test data
 pred.test.ada = predict(ada_m$finalModel, test.data)
-
+prob.test <- predict(ada_m, test.data, type = 'prob')
+write.csv(x = prob.test, file = '../data/processed/ada_prob_under.csv')
 # create confusion matrix
 cm = confusionMatrix(pred.test.ada, test.data$Attrition_Flag, positive = "Attrited Customer")
 
 cm_plot = plot_cm(cm, 'Confusion Matrix: AdaBoost' )
 
+png('../plots/cm_ada_under.png', height = 6, width = 6, res = 600, units = 'in')
+plot_cm(cm, 'Confusion Matrix: ADABoost - Under Sampled' )
+dev.off()
 ```

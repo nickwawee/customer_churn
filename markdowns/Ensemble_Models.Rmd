@@ -15,6 +15,7 @@ library(caret)
 library(ada)
 library(plyr)
 
+
 plot_cm <- function(cm, plot_title) {#https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package
 
   layout(matrix(c(1,1,2)))
@@ -124,7 +125,8 @@ rf$finalModel
 
 # get prediction on the test data
 pred.test.rf = predict(rf$finalModel, test.data, type = 'class')
-
+prob.test <- predict(rf, test.data, type = 'prob')
+write.csv(x = prob.test, file = '../data/processed/rf_prob.csv')
 # create confusion matrix
 cm = confusionMatrix(pred.test.rf, test.data$Attrition_Flag, positive = "Attrited Customer")
 
@@ -150,10 +152,10 @@ plot(varImp(ada))
 
 # get prediction on the test data
 pred.test.ada = predict(ada$finalModel, test.data)
-
+prob.test <- predict(ada, test.data, type = 'prob')
+write.csv(x = prob.test, file = '../data/processed/ada_prob.csv')
 # create confusion matrix
 cm = confusionMatrix(pred.test.ada, test.data$Attrition_Flag, positive = "Attrited Customer")
-
 
 cm_plot = plot_cm(cm, 'Confusion Matrix: AdaBoost' )
 ```
