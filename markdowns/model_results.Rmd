@@ -11,7 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(ggplot2)
 library(reshape2)
-
+library(tidyr)
+library(dplyr)
+library(jtools)
+library(forcats)
 plot_opts =   theme_bw()+
   theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black") , axis.title.x = element_text(face='bold', size = 14), axis.title.y = element_text(face='bold', size = 14), plot.title = element_text(face='bold', size = 18, hjust=0.5))
 
@@ -187,7 +190,7 @@ ggsave('../plots/treepredimp_under.png',plot = treeimp_p, device = 'png', height
 
 ```{r varimp logit}
 
-library(jtools)
+
 load('../data/processed/logit_under.rda')
 
 logit = step_cv$finalModel
@@ -196,7 +199,7 @@ png('../plots/logit_under_coeffs.png', height = 4, width = 6, res = 600, units =
 plot_coefs(logit, exp= T)
 dev.off()
 
-library(tidyr)
+
 tbl = tidy(logit)
 tbl$estimate = round(tbl$estimate,4)
 tbl$std.error = round(tbl$std.error,4)
