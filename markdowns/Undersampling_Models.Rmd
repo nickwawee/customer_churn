@@ -9,6 +9,9 @@ source('/Users/nickwawee/Desktop/BGSU/MSA_6440/Week_2/myfunctions.R')
 
 bank <- bank[,c(-1,-2,-10)]
 
+bank$Attrition_Flag = ifelse(bank$Attrition_Flag == 'Attrited Customer', 1, 0)
+bank$Attrition_Flag = as.factor(bank$Attrition_Flag)
+
 RNGkind (sample.kind = "Rounding") 
 set.seed(0)
 p2 <- partition.2(bank, 0.7) # 70:30 partition
@@ -17,8 +20,11 @@ test.data <- p2$data.test
 
 # Undersampling
 set.seed(0)
-all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
-all_attrit <- training.data[which(training.data$Attrition_Flag == 'Attrited Customer'),]
+#all_exist <- training.data[which(training.data$Attrition_Flag == 'Existing Customer'),]
+#all_attrit <- training.data[which(training.data$Attrition_Flag == 'Attrited Customer'),]
+
+all_exist <- training.data[which(training.data$Attrition_Flag == '0'),]
+all_attrit <- training.data[which(training.data$Attrition_Flag == '1'),]
 
 random <- sample(1:nrow(all_exist), nrow(all_attrit), replace = FALSE)
 train.data <- all_exist[random,]
@@ -92,8 +98,8 @@ save(step_cv, file = '../data/processed/logit_under.rda')
 # Confusion matrix for test data
 prob.test <- predict(step_cv, newdata = test.data, type = "prob")
 write.csv(x = prob.test, file = '../data/processed/logit_prob_under.csv')
-y.test <- ifelse(prob.test[,2] > 0.6, "Existing Customer", "Attrited Customer")
-cm = confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = "Existing Customer")
+y.test <- ifelse(prob.test[,2] > 0.6, "0", "Attrited Customer")
+cm = confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = "Attrited Customer")
 
 png('../plots/cm_logit_under.png', height = 6, width = 6, res = 600, units = 'in')
 plot_cm(cm, 'Confusion Matrix: Logit - Under Sampled' )
@@ -121,7 +127,7 @@ prp(tree_cv$finalModel, type = 1, extra = 1, under = TRUE, split.font = 2, varle
 prob.test <- predict(tree_cv, test.data, type = 'prob')
 write.csv(x = prob.test, file = '../data/processed/cct_prob_under.csv')
 y.test <- ifelse(prob.test[,2] > 0.6, "Existing Customer", "Attrited Customer")
-confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = 'Existing Customer')
+confusionMatrix(as.factor(y.test), as.factor(test.data$Attrition_Flag), positive = 'Attrited Customer')
 ```
 
 ## Neural Network
