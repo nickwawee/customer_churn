@@ -15,20 +15,27 @@ library(plyr)
 count(Bank, 'Attrition_Flag')
 1113/7081 # Percent customer attrition
 
+count(Bank, 'Card_Category')
+
+library(ggplot2)
+par(mfrow=c(2,2))
 # Histogram of customer age
-hist(Bank$Customer_Age, main = 'Customer Age')
+ggplot(Bank, aes(Customer_Age)) + geom_histogram(binwidth = 2) + geom_vline(aes(xintercept = mean(Customer_Age)), col = "red")
 # Plot of gender
-plot(Bank$Gender, main = 'Gender Distribution')
-# Plot of education level
-plot(Bank$Education_Level, main = 'Education Level')
+ggplot(Bank, aes(Gender)) + geom_bar()
 # Plot of marital status
-plot(Bank$Marital_Status, main = 'Marital Status')
-# Plot of income
-plot(Bank$Income_Category, main = 'Income Category')
+ggplot(Bank, aes(Marital_Status)) + geom_bar()
+# Plot of education level
+ggplot(Bank, aes(Education_Level)) + geom_bar()
+ggplot(Bank, aes(Income_Category)) + geom_bar()
+```
+
+
+```{r}
 # Histogram of months on book
-hist(Bank$Months_on_book, main = 'Months on Book')
+ggplot(Bank, aes(Months_on_book)) + geom_histogram(binwidth = 4) + geom_vline(aes(xintercept = mean(Months_on_book)), col = "red")
 # Histogram of credit limit
-hist(Bank$Credit_Limit, main = 'Credit Limit')
+ggplot(Bank, aes(Credit_Limit)) + geom_histogram(binwidth = 1000) + geom_vline(aes(xintercept = mean(Credit_Limit)), col = "red")
 # Histogram of average utilization ratio
-hist(Bank$Avg_Utilization_Ratio, main = 'Average Utilization Ratio')
+ggplot(Bank, aes(Avg_Utilization_Ratio)) + geom_histogram(binwidth = 0.05) + geom_vline(aes(xintercept = mean(Avg_Utilization_Ratio)), col = "red")
 ```
